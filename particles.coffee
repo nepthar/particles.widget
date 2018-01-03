@@ -34,7 +34,7 @@ command: "pmset -g batt | egrep '([0-9]+\%).*' -o --colour=auto | cut -f1 -d';'"
 render: (_) ->
   """
   <div id="particle-canvas" style="width:100%; height:100%; padding:0;"></div>
-  <script src="particles.widget/src/particles.jsl"></script>
+  <script src="particles.widget/particles.jsl"></script>
   """
 
 
