@@ -9,6 +9,29 @@ function randomSelect(list) {
   return list[Math.floor(Math.random() * list.length)]
 }
 
+class Drift {
+
+  constructor (maxVelocity) {
+    this.limV = maxVelocity
+    this.step = 0
+    this.dx = 0.0
+    this.dy = 0.0
+  }
+
+  changeDirection(step) {
+
+  }
+
+  update(rand) {
+
+  }
+
+  drift(x, y) {
+    return [0.2, 0.2]
+  }
+
+}
+
 class Particle {
   constructor (parent) {
     this.parent = parent
@@ -21,13 +44,12 @@ class Particle {
     this.color = randomSelect(parent.opts.colors)
   }
 
-  update(rand) {
-    if (this.x > this.parent.limx || this.x < -20) this.vx = -this.vx
-    if (this.y > this.parent.limy || this.y < -20) this.vy = -this.vy
+  update(rand, drift) {
+    const ddrift = drift.drift(this.x, this.y)
+    this.x = (this.x + this.vx + ddrift[0]) % this.parent.limx
+    this.y = (this.y + this.vy + ddrift[1]) % this.parent.limy
 
-    this.x += this.vx
-    this.y += this.vy
-
+    // Size change
     if (this.size < this.parent.opts.sizeMin) this.vs += rand * this.parent.opts.sizeScale
     else if (this.size > this.parent.opts.sizeMax) this.vs -= rand * this.parent.opts.sizeScale
     else this.vs += (rand - 0.5) * this.parent.opts.sizeScale
@@ -67,8 +89,10 @@ class ParticleNetwork {
       'position': 'relative'
     })
 
-    this.limx = this.canvas.width + 20
-    this.limy = this.canvas.height + 20
+    this.limx = this.canvas.width
+    this.limy = this.canvas.height
+
+    this.drift = new Drift()
 
     // Initialize particles
     this.particles = []
@@ -93,7 +117,7 @@ class ParticleNetwork {
 
     for (let i = 0; i < this.numParticles; i++) {
       const pi = this.particles[i]
-      pi.update(rand)
+      pi.update(rand, this.drift)
       for (let j = this.numParticles - 1; j > i; j--) {
         const pj = this.particles[j]
 
