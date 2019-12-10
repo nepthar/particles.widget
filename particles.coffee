@@ -3,10 +3,13 @@
 
 opts =
   # Particle colors
-  colors:  ["#fffb96", "#f47cd4", "#01cdfe"] # a e s t h e t i c
+  colors:  ["#fffb96", "#f47cd4", "#01cdfe", "#000"] # a e s t h e t i c
 
   # Average particle velocity
-  velocity: 1
+  velocity: 25
+
+  # Likelyhood of particle changing velocity
+  velocityFlicker: 0.01
 
   # Average area per particle in sq pixels
   sparsity: 20000
@@ -14,18 +17,17 @@ opts =
   # Distance at which particles are close enough to glow
   range: 200
 
-  # How fast particles change size
-  sizeScale: 0.01
+  # Minimum particle size
+  sizeMin: 1.0
 
-  # Soft size limits
-  sizeMin: 0.75
+  # Max particle size
   sizeMax: 4.0
 
-  # Milliseconds between redraws
-  updateMs: 75
+  # Likelyhood of particle changing size
+  sizeFlicker: 0.01
 
-  # Frames for fade in/out
-  fadeFrames: 20
+  # Milliseconds between redraws. We could use the
+  frameSkip: 5
 
 
 command: "pmset -g batt | egrep '([0-9]+\%).*' -o --colour=auto | cut -f1 -d';'"

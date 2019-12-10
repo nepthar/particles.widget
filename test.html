@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="ascii">
     <style type="text/css">
       html {
         height: 100%;
@@ -25,7 +26,10 @@
     colors:  ["#fffb96", "#f47cd4", "#01cdfe"], // a e s t h e t i c
 
     // Average particle velocity
-    velocity: 2,
+    velocity: 100,
+
+    // Likelyhood of particle changing velocity (0.0 - 1.0)
+    velocityFlicker: 0.05,
 
     // Average area per particle in sq pixels
     sparsity: 10000,
@@ -33,18 +37,12 @@
     // Distance at which particles are close enough to glow
     range: 400,
 
-    // How fast particles change size
-    sizeScale: 0.01,
+    sizeMin: 1,
+    sizeMax: 6,
+    sizeFlicker: 0.05,
 
-    // Soft size limits
-    sizeMin: 0.75,
-    sizeMax: 4.0,
-
-    // Milliseconds between redraws
-    updateMs: 50,
-
-    // Frames for fade in/out
-    fadeFrames: 20
+    // Number of frames to skip when using requestAnimationFrame
+    frameSkip: 2,
   };
   var pn = new ParticleNetwork("particle-canvas", opts);
   pn.start();

@@ -9,57 +9,64 @@ function randomSelect(list) {
   return list[Math.floor(Math.random() * list.length)]
 }
 
-class Drift {
+function randomRange(min, max) {
+  const range = max - min
+  return () => {
+    return (Math.random() * range) + min
+  }
+}
 
-  constructor (maxVelocity) {
-    this.limV = maxVelocity
-    this.step = 0
-    this.dx = 0.0
-    this.dy = 0.0
+// Numerical variable with two states: constant, changing. When constant, it has
+// Has a transitionChance chance of switching to changing. This is approximate
+class FlickerVar {
+  constructor(transitionChance, getNewValue, getTransitionStepCount) {
+    this.val = getNewValue()
+    this.velocity = 0
+    this.chance = transitionChance
+    this.getNewValue = getNewValue
+    this.getTransitionStepCount = getTransitionStepCount
+    this.transitionStepsRemaining = 0
   }
 
-  changeDirection(step) {
-
-  }
-
+  // Rand should be in the range 0 to 1
   update(rand) {
-
+    if (this.transitionStepsRemaining == 0) {
+      // Constant
+      if (this.chance > rand) {
+        // Start Transition
+        this.transitionStepsRemaining = Math.floor(this.getTransitionStepCount())
+        this.velocity = (this.getNewValue() - this.val) / this.transitionStepsRemaining
+      }
+    } else {
+      // Transitioning
+      this.val += this.velocity
+      this.transitionStepsRemaining -= 1
+    }
+    return this.val
   }
-
-  drift(x, y) {
-    return [0.2, 0.2]
-  }
-
 }
 
 class Particle {
-  constructor (parent) {
-    this.parent = parent
-    this.x = Math.random() * parent.limx
-    this.y = Math.random() * parent.limy
-    this.vx = (Math.random() - 0.5) * parent.opts.velocity
-    this.vy = (Math.random() - 0.5) * parent.opts.velocity
-    this.size = Math.random() * 3.5 + 0.5
-    this.vs = 0
-    this.color = randomSelect(parent.opts.colors)
+  constructor (net) {
+    this.net = net
+    this.x = Math.random() * net.limx
+    this.y = Math.random() * net.limy
+    this.s = net.newParticleSize()
+    this.color = randomSelect(net.opts.colors)
+
+    this.vx = new FlickerVar(net.opts.velocityFlicker, net.newVelocity, net.newSizeChangeTime)
+    this.vy = new FlickerVar(net.opts.velocityFlicker, net.newVelocity, net.newSizeChangeTime)
+    this.vs = new FlickerVar(net.opts.sizeFlicker, net.newParticleSize, net.newSizeChangeTime)
   }
 
-  update(rand, drift) {
-    const ddrift = drift.drift(this.x, this.y)
-    this.x = (this.x + this.vx + ddrift[0]) % this.parent.limx
-    this.y = (this.y + this.vy + ddrift[1]) % this.parent.limy
-
-    // Size change
-    if (this.size < this.parent.opts.sizeMin) this.vs += rand * this.parent.opts.sizeScale
-    else if (this.size > this.parent.opts.sizeMax) this.vs -= rand * this.parent.opts.sizeScale
-    else this.vs += (rand - 0.5) * this.parent.opts.sizeScale
-
-    this.size += this.vs
-    if (this.size < 0) this.size = 0
+  update(rand) {
+    this.x = (this.x + this.vx.update(rand)) % this.net.limx
+    this.y = (this.y + this.vy.update(rand)) % this.net.limy
+    this.size = this.vs.update(rand)
   }
 
   draw() {
-    const ctx = this.parent.ctx
+    const ctx = this.net.ctx
     ctx.fillStyle = this.color
     ctx.beginPath()
     ctx.arc(this.x, this.y, this.size, 0, TPI)
@@ -92,32 +99,37 @@ class ParticleNetwork {
     this.limx = this.canvas.width
     this.limy = this.canvas.height
 
-    this.drift = new Drift()
+    // Standardizes velocity across values of frame skip
+    this.vv = (this.opts.velocity / 100) * (this.opts.frameSkip + 1)
+
+    // Functions to generate new properties
+    this.newParticleSize = randomRange(this.opts.sizeMin, this.opts.sizeMax)
+    this.newSizeChangeTime = randomRange(30, 60)
+    this.newVelocity = randomRange(-this.vv, this.vv)
 
     // Initialize particles
     this.particles = []
     this.numParticles = Math.round(this.canvas.width * this.canvas.height / this.opts.sparsity)
     this.run = false
-    this.fade = 0
 
     for (let i = 0; i < this.numParticles; i++)
       this.particles.push(new Particle(this))
 
-    this.boundUpdate = this.update.bind(this)
+    this.boundOnFrame = this.onFrame.bind(this)
+    this.frameCounter = 0
   }
 
-  update() {
+  updateAndDraw() {
     const np = this.vizCount
     let ctx = this.ctx
     const rand = Math.random()
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
-    const frameFade = this.fade < this.opts.fadeFrames ? this.fade / this.opts.fadeFrames : 1.0
-
     for (let i = 0; i < this.numParticles; i++) {
       const pi = this.particles[i]
-      pi.update(rand, this.drift)
+      // I think it's cool when they all change at once.
+      pi.update(rand)// Math.random())
       for (let j = this.numParticles - 1; j > i; j--) {
         const pj = this.particles[j]
 
@@ -128,27 +140,31 @@ class ParticleNetwork {
         if (distanceIsh > this.opts.range) continue
 
         const sqrtAlpha = (this.opts.range - distanceIsh) / this.opts.range
-        ctx.globalAlpha = sqrtAlpha * sqrtAlpha * frameFade
+        ctx.globalAlpha = sqrtAlpha * sqrtAlpha
         pi.draw()
         pj.draw()
       }
     }
+  }
 
-    if (this.run) {
-      if (this.fade < this.opts.fadeFrames) this.fade++
+  onFrame() {
+    // Skip
+    if(this.frameCounter > 0) {
+      this.frameCounter--
     } else {
-      if (this.fade > 0) this.fade--
+      this.updateAndDraw()
+      this.frameCounter = this.opts.frameSkip
     }
 
-    if (this.fade > 0) {
-      setTimeout(this.boundUpdate, this.opts.updateMs)
+    if (this.run) {
+      requestAnimationFrame(this.boundOnFrame)
     }
   }
 
   start() {
     if (!this.run) {
       this.run = true
-      this.update()
+      this.onFrame()
     }
   }
 
