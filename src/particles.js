@@ -11,8 +11,8 @@ function randomSelect(list) {
 
 function randomRange(min, max) {
   const range = max - min
-  return () => {
-    return (Math.random() * range) + min
+  return (rand) => {
+    return (rand * range) + min
   }
 }
 
@@ -20,7 +20,7 @@ function randomRange(min, max) {
 // Has a transitionChance chance of switching to changing. This is approximate
 class FlickerVar {
   constructor(transitionChance, getNewValue, getTransitionStepCount) {
-    this.val = getNewValue()
+    this.val = getNewValue(Math.random())
     this.velocity = 0
     this.chance = transitionChance
     this.getNewValue = getNewValue
@@ -34,8 +34,9 @@ class FlickerVar {
       // Constant
       if (this.chance > rand) {
         // Start Transition
-        this.transitionStepsRemaining = Math.floor(this.getTransitionStepCount())
-        this.velocity = (this.getNewValue() - this.val) / this.transitionStepsRemaining
+        const newRandom = Math.random()
+        this.transitionStepsRemaining = Math.floor(this.getTransitionStepCount(newRandom))
+        this.velocity = (this.getNewValue(newRandom) - this.val) / this.transitionStepsRemaining
       }
     } else {
       // Transitioning
@@ -88,6 +89,7 @@ class ParticleNetwork {
     this.canvas = document.createElement('canvas')
     this.canvasDiv.appendChild(this.canvas)
     this.ctx = this.canvas.getContext('2d')
+    this.ctx.globalAlpha = 0.5
     this.canvas.width = this.canvasDiv.size.width
     this.canvas.height = this.canvasDiv.size.height
     this.setStyles(this.canvasDiv, { 'position': 'relative' })
@@ -100,7 +102,7 @@ class ParticleNetwork {
     this.limy = this.canvas.height
 
     // Standardizes velocity across values of frame skip
-    this.vv = (this.opts.velocity / 100) * (this.opts.frameSkip + 1)
+    this.vv = (this.opts.velocity / 1000) * (this.opts.frameSkip + 1)
 
     // Functions to generate new properties
     this.newParticleSize = randomRange(this.opts.sizeMin, this.opts.sizeMax)
@@ -109,7 +111,7 @@ class ParticleNetwork {
 
     // Initialize particles
     this.particles = []
-    this.numParticles = Math.round(this.canvas.width * this.canvas.height / this.opts.sparsity)
+    this.numParticles = this.opts.numParticles
     this.run = false
 
     for (let i = 0; i < this.numParticles; i++)
@@ -117,10 +119,11 @@ class ParticleNetwork {
 
     this.boundOnFrame = this.onFrame.bind(this)
     this.frameCounter = 0
+
+    console.log("Created particle network with N=" + this.numParticles)
   }
 
   updateAndDraw() {
-    const np = this.vizCount
     let ctx = this.ctx
     const rand = Math.random()
 

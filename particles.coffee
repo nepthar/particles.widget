@@ -3,16 +3,16 @@
 
 opts =
   # Particle colors
-  colors:  ["#fffb96", "#f47cd4", "#01cdfe", "#000"] # a e s t h e t i c
+  colors:  ["#fffb96", "#f47cd4", "#01cdfe"] # a e s t h e t i c
 
   # Average particle velocity
-  velocity: 25
+  velocity: 200
 
   # Likelyhood of particle changing velocity
   velocityFlicker: 0.01
 
-  # Average area per particle in sq pixels
-  sparsity: 20000
+  # Number of particles
+  numParticles: 45
 
   # Distance at which particles are close enough to glow
   range: 200
@@ -26,7 +26,8 @@ opts =
   # Likelyhood of particle changing size
   sizeFlicker: 0.01
 
-  # Milliseconds between redraws. We could use the
+  # Skip frames to save CPU cycles. If this number is zero, the animation will
+  # run at around 60 fps.
   frameSkip: 5
 
 
