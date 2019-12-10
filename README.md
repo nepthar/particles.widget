@@ -3,10 +3,7 @@
 A slow moving particle effect for [Übersicht](http://tracesof.net/uebersicht/).
 
 ## Files
-  1. particles.jsl: The js file containing the effect classes. This ends in
-     .jsl because otherwise Übersicht attempts to load it as its own widget. Note
-     that any changes made to this file require a full restart of Übersicht to
-     be picked up. Simply refreshing won't work.
+  1. src/particles.js: The js file containing the effect classes.
   2. particles.coffee: The main widget file
   3. test.html: Useful for quickly making modifications and testing them
 
