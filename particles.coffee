@@ -5,26 +5,25 @@ opts =
   # Particle colors
   colors:  ["#fffb96", "#f47cd4", "#01cdfe"] # a e s t h e t i c
 
-  # Average particle velocity
-  velocity: 200
+  velocity: 100
 
   # Likelyhood of particle changing velocity
-  velocityFlicker: 0.01
+  velocityFlicker: 0.001
 
   # Number of particles
-  numParticles: 45
+  numParticles: 50
 
   # Distance at which particles are close enough to glow
-  range: 200
+  range: 300
 
   # Minimum particle size
-  sizeMin: 1.0
+  sizeMin: 1
 
   # Max particle size
-  sizeMax: 4.0
+  sizeMax: 5
 
   # Likelyhood of particle changing size
-  sizeFlicker: 0.01
+  sizeFlicker: 0.001
 
   # Skip frames to save CPU cycles. If this number is zero, the animation will
   # run at around 60 fps.

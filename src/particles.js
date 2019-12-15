@@ -4,46 +4,70 @@
 "use strict" // Does this do anything?
 const TPI = 2.0 * Math.PI
 
-function randomSelect(list) {
-  // NB: Math.random is always less than 1.0
-  return list[Math.floor(Math.random() * list.length)]
-}
+class Random {
 
-function randomRange(min, max) {
-  const range = max - min
-  return (rand) => {
-    return (rand * range) + min
+  static select(list) {
+    // NB: Math.random is always less than 1.0
+    return list[Math.floor(Math.random() * list.length)]
+  }
+
+  static range(min, max) {
+    const range = max - min
+    return () => {
+      return (Math.random() * range) + min
+    }
+  }
+
+  // https://stackoverflow.com/a/39187274
+  // I played around with this for a bit and found that 12 gave me a satisfactory
+  // approximation. I have no idea how expensive these Math.random calls are.
+  static normal(mu, sigma) {
+    return () => {
+      let rand = 0
+      rand += Math.random(); rand += Math.random(); rand += Math.random();
+      rand += Math.random(); rand += Math.random(); rand += Math.random();
+      rand += Math.random(); rand += Math.random(); rand += Math.random();
+      rand += Math.random(); rand += Math.random(); rand += Math.random();
+      return (rand - 6) * sigma + mu
+    }
   }
 }
 
 // Numerical variable with two states: constant, changing. When constant, it has
 // Has a transitionChance chance of switching to changing. This is approximate
-class FlickerVar {
-  constructor(transitionChance, getNewValue, getTransitionStepCount) {
-    this.val = getNewValue(Math.random())
+class TVar {
+  constructor(chance, getNewValue, getTime, minDelta = 1E-33) {
+    this.value = getNewValue()
     this.velocity = 0
-    this.chance = transitionChance
-    this.getNewValue = getNewValue
-    this.getTransitionStepCount = getTransitionStepCount
-    this.transitionStepsRemaining = 0
+    this.chance = chance
+    this.newVal = getNewValue
+    this.newTime = getTime
+    this.steps = 0
+    this.minDelta = minDelta
   }
 
-  // Rand should be in the range 0 to 1
   update(rand) {
-    if (this.transitionStepsRemaining == 0) {
+    if (this.steps == 0) {
       // Constant
       if (this.chance > rand) {
         // Start Transition
-        const newRandom = Math.random()
-        this.transitionStepsRemaining = Math.floor(this.getTransitionStepCount(newRandom))
-        this.velocity = (this.getNewValue(newRandom) - this.val) / this.transitionStepsRemaining
+        this.steps = Math.floor(this.newTime())
+        if (this.steps == 0) {
+          this.value = this.newVal()
+        } else {
+          this.velocity = (this.newVal() - this.value) / this.steps
+        }
       }
     } else {
       // Transitioning
-      this.val += this.velocity
-      this.transitionStepsRemaining -= 1
+      this.value += this.velocity
+      this.steps -= 1
     }
-    return this.val
+    return this.value
+  }
+
+  static const(value) {
+    return new TVar(0.0, () => { return value }, () => { return 0; })
   }
 }
 
@@ -52,27 +76,30 @@ class Particle {
     this.net = net
     this.x = Math.random() * net.limx
     this.y = Math.random() * net.limy
-    this.s = net.newParticleSize()
-    this.color = randomSelect(net.opts.colors)
 
-    this.vx = new FlickerVar(net.opts.velocityFlicker, net.newVelocity, net.newSizeChangeTime)
-    this.vy = new FlickerVar(net.opts.velocityFlicker, net.newVelocity, net.newSizeChangeTime)
-    this.vs = new FlickerVar(net.opts.sizeFlicker, net.newParticleSize, net.newSizeChangeTime)
+    this.s = new TVar(net.opts.sizeFlicker, net.newParticleSize, net.newSizeChangeTime)
+    this.color = Random.select(net.opts.colors)
+    this.flicker = Random.range(0.5, 1.0)
+
+    this.vx = new TVar(net.opts.velocityFlicker, net.newVelocity, net.newVelChangeTime)
+    this.vy = new TVar(net.opts.velocityFlicker, net.newVelocity, net.newVelChangeTime)
   }
 
   update(rand) {
     this.x = (this.x + this.vx.update(rand)) % this.net.limx
     this.y = (this.y + this.vy.update(rand)) % this.net.limy
-    this.size = this.vs.update(rand)
+    this.s.update(rand)
   }
 
   draw() {
     const ctx = this.net.ctx
+    ctx.globalAlpha = this.net.globalAlpha * this.flicker()
     ctx.fillStyle = this.color
     ctx.beginPath()
-    ctx.arc(this.x, this.y, this.size, 0, TPI)
+    ctx.arc(this.x, this.y, this.s.value, 0, TPI)
     ctx.fill()
   }
+
 }
 
 class ParticleNetwork {
@@ -89,7 +116,7 @@ class ParticleNetwork {
     this.canvas = document.createElement('canvas')
     this.canvasDiv.appendChild(this.canvas)
     this.ctx = this.canvas.getContext('2d')
-    this.ctx.globalAlpha = 0.5
+    this.globalAlpha = 1.0
     this.canvas.width = this.canvasDiv.size.width
     this.canvas.height = this.canvasDiv.size.height
     this.setStyles(this.canvasDiv, { 'position': 'relative' })
@@ -101,13 +128,17 @@ class ParticleNetwork {
     this.limx = this.canvas.width
     this.limy = this.canvas.height
 
-    // Standardizes velocity across values of frame skip
-    this.vv = (this.opts.velocity / 1000) * (this.opts.frameSkip + 1)
+    // Standardizes some things across values of frame skip
+    const fpsCorrect = this.opts.frameSkip + 1
+    this.vv = (this.opts.velocity * fpsCorrect) / 1000.0
+    this.vflicker = this.opts.velocityFlicker / fpsCorrect
+    this.sflicker = this.opts.sizeFlicker / fpsCorrect
 
     // Functions to generate new properties
-    this.newParticleSize = randomRange(this.opts.sizeMin, this.opts.sizeMax)
-    this.newSizeChangeTime = randomRange(30, 60)
-    this.newVelocity = randomRange(-this.vv, this.vv)
+    this.newParticleSize = Random.range(this.opts.sizeMin, this.opts.sizeMax)
+    this.newSizeChangeTime = Random.range(60, 300)
+    this.newVelChangeTime = Random.range(15, 60)
+    this.newVelocity = Random.normal(0, this.vv)
 
     // Initialize particles
     this.particles = []
@@ -132,20 +163,17 @@ class ParticleNetwork {
     for (let i = 0; i < this.numParticles; i++) {
       const pi = this.particles[i]
       // I think it's cool when they all change at once.
-      pi.update(rand)// Math.random())
+      pi.update(rand);
+
       for (let j = this.numParticles - 1; j > i; j--) {
         const pj = this.particles[j]
-
-        // what fun would that be?
-        if (pj.color == pi.color) continue
 
         const distanceIsh = Math.abs(pi.x - pj.x) + Math.abs(pi.y - pj.y)
         if (distanceIsh > this.opts.range) continue
 
         const sqrtAlpha = (this.opts.range - distanceIsh) / this.opts.range
-        ctx.globalAlpha = sqrtAlpha * sqrtAlpha
+        this.globalAlpha = sqrtAlpha * sqrtAlpha
         pi.draw()
-        pj.draw()
       }
     }
   }
@@ -173,6 +201,14 @@ class ParticleNetwork {
 
   stop() {
     this.run = false
+  }
+
+  click() {
+    if (this.run) {
+      this.run = false
+    } else {
+      this.start()
+    }
   }
 
   setStyles(div, styles) {

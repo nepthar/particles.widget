@@ -18,7 +18,7 @@
 </head>
 <body style="background-color:black;">
 
-<div id="particle-canvas" style="width:100%; height:100%; padding:0;"></div>
+<div id="particle-canvas" style="width:100%; height:100%; padding:0;" onmouseup="OnClick(event)"></div>
 <script src="src/particles.js"></script>
 <script>
   const opts = {
@@ -26,26 +26,30 @@
     colors:  ["#fffb96", "#f47cd4", "#01cdfe"], // a e s t h e t i c
 
     // Average particle velocity
-    velocity: 1000,
+    velocity: 70,
 
     // Likelyhood of particle changing velocity (0.0 - 1.0)
-    velocityFlicker: 0.05,
+    velocityFlicker: 0.001,
 
     // Number of particles. Adjust to your screen size
-    numParticles: 100,
+    numParticles: 50,
 
     // Distance at which particles are close enough to glow
-    range: 400,
+    range: 200,
 
     sizeMin: 1,
-    sizeMax: 6,
-    sizeFlicker: 0.05,
+    sizeMax: 4,
+    sizeFlicker: 0.001,
 
     // Number of frames to skip when using requestAnimationFrame
-    frameSkip: 2,
+    frameSkip: 5,
   };
   var pn = new ParticleNetwork("particle-canvas", opts);
   pn.start();
+
+  function OnClick(event) {
+    pn.click();
+  }
 </script>
 
 </body>
