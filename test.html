@@ -25,25 +25,31 @@
     // Particle colors
     colors:  ["#fffb96", "#f47cd4", "#01cdfe"], // a e s t h e t i c
 
-    // Average particle velocity
-    velocity: 70,
+    speed: 100,
 
-    // Likelyhood of particle changing velocity (0.0 - 1.0)
-    velocityFlicker: 0.001,
+    // How often the particles change direction. (0.0 - 1.0)
+    wander: 0.0,
 
-    // Number of particles. Adjust to your screen size
-    numParticles: 50,
+    // How flickery the particles appear. (0.0 -> anything really)
+    flicker: 0.7,
+
+    // Number of particles
+    number: 50,
 
     // Distance at which particles are close enough to glow
     range: 200,
 
-    sizeMin: 1,
-    sizeMax: 4,
-    sizeFlicker: 0.001,
+    // Minimum particle size
+    sizeMin: 2,
 
-    // Number of frames to skip when using requestAnimationFrame
-    frameSkip: 5,
+    // Max particle size
+    sizeMax: 5,
+
+    // Skip frames to save CPU cycles. If this number is zero, the animation will
+    // run at around 6
+    frameSkip: 0,
   };
+
   var pn = new ParticleNetwork("particle-canvas", opts);
   pn.start();
 

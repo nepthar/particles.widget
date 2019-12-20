@@ -5,7 +5,6 @@
 const TPI = 2.0 * Math.PI
 
 class Random {
-
   static select(list) {
     // NB: Math.random is always less than 1.0
     return list[Math.floor(Math.random() * list.length)]
@@ -18,9 +17,11 @@ class Random {
     }
   }
 
-  // https://stackoverflow.com/a/39187274
+  // Use the central limit theorem to approximate a normal distribution.
   // I played around with this for a bit and found that 12 gave me a satisfactory
   // approximation. I have no idea how expensive these Math.random calls are.
+  // The range of numbers returned by this will be `mu` +/- (6 * `sigma`). Those
+  // long tails could cause strange results.
   static normal(mu, sigma) {
     return () => {
       let rand = 0
@@ -36,14 +37,13 @@ class Random {
 // Numerical variable with two states: constant, changing. When constant, it has
 // Has a transitionChance chance of switching to changing. This is approximate
 class TVar {
-  constructor(chance, getNewValue, getTime, minDelta = 1E-33) {
+  constructor(chance, getNewValue, getTime) {
     this.value = getNewValue()
     this.velocity = 0
     this.chance = chance
     this.newVal = getNewValue
     this.newTime = getTime
     this.steps = 0
-    this.minDelta = minDelta
   }
 
   update(rand) {
@@ -79,10 +79,10 @@ class Particle {
 
     this.s = new TVar(net.opts.sizeFlicker, net.newParticleSize, net.newSizeChangeTime)
     this.color = Random.select(net.opts.colors)
-    this.flicker = Random.range(0.5, 1.0)
+    this.flicker = Random.range(1.0 - net.opts.flicker, 1.0)
 
-    this.vx = new TVar(net.opts.velocityFlicker, net.newVelocity, net.newVelChangeTime)
-    this.vy = new TVar(net.opts.velocityFlicker, net.newVelocity, net.newVelChangeTime)
+    this.vx = new TVar(net.opts.wander, net.newVelocity, net.newVelChangeTime)
+    this.vy = new TVar(net.opts.wander, net.newVelocity, net.newVelChangeTime)
   }
 
   update(rand) {
@@ -91,9 +91,9 @@ class Particle {
     this.s.update(rand)
   }
 
-  draw() {
+  draw(alpha) {
     const ctx = this.net.ctx
-    ctx.globalAlpha = this.net.globalAlpha * this.flicker()
+    ctx.globalAlpha = alpha * this.flicker()
     ctx.fillStyle = this.color
     ctx.beginPath()
     ctx.arc(this.x, this.y, this.s.value, 0, TPI)
@@ -130,9 +130,9 @@ class ParticleNetwork {
 
     // Standardizes some things across values of frame skip
     const fpsCorrect = this.opts.frameSkip + 1
-    this.vv = (this.opts.velocity * fpsCorrect) / 1000.0
-    this.vflicker = this.opts.velocityFlicker / fpsCorrect
-    this.sflicker = this.opts.sizeFlicker / fpsCorrect
+    this.vv = (this.opts.speed * fpsCorrect) / 1000.0
+    this.vflicker = this.opts.wander / fpsCorrect
+    this.sflicker = 0.001 / fpsCorrect
 
     // Functions to generate new properties
     this.newParticleSize = Random.range(this.opts.sizeMin, this.opts.sizeMax)
@@ -142,7 +142,7 @@ class ParticleNetwork {
 
     // Initialize particles
     this.particles = []
-    this.numParticles = this.opts.numParticles
+    this.numParticles = this.opts.number
     this.run = false
 
     for (let i = 0; i < this.numParticles; i++)
@@ -172,8 +172,10 @@ class ParticleNetwork {
         if (distanceIsh > this.opts.range) continue
 
         const sqrtAlpha = (this.opts.range - distanceIsh) / this.opts.range
-        this.globalAlpha = sqrtAlpha * sqrtAlpha
-        pi.draw()
+        const as = sqrtAlpha * sqrtAlpha
+
+        pi.draw(as)
+        pj.draw(as)
       }
     }
   }
