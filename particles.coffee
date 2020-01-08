@@ -8,7 +8,7 @@ opts =
   speed: 100
 
   # How often the particles change direction. (0.0 - 1.0)
-  wander: 0.7
+  wander: 0.8
 
   # How flickery the particles appear. (0.0+)
   flicker: 0.5
