@@ -80,6 +80,7 @@ class Particle {
     this.s = new TVar(net.opts.sizeFlicker, net.newParticleSize, net.newSizeChangeTime)
     this.color = Random.select(net.opts.colors)
     this.flicker = Random.range(1.0 - net.opts.flicker, 1.0)
+    this.a = 0
 
     this.vx = new TVar(net.opts.wander, net.newVelocity, net.newVelChangeTime)
     this.vy = new TVar(net.opts.wander, net.newVelocity, net.newVelChangeTime)
@@ -91,10 +92,13 @@ class Particle {
     this.s.update(rand)
   }
 
-  draw(alpha) {
+  draw() {
     const ctx = this.net.ctx
-    ctx.globalAlpha = alpha * this.flicker()
+    ctx.globalAlpha = this.a * this.flicker()
     ctx.fillStyle = this.color
+    // Believe it or not, this uses 4x CPU. Wooo boy.
+    // ctx.shadowBlur = this.s.value * .75
+    // ctx.shadowColor = "white"
     ctx.beginPath()
     ctx.arc(this.x, this.y, this.s.value, 0, TPI)
     ctx.fill()
@@ -163,26 +167,27 @@ class ParticleNetwork {
     for (let i = 0; i < this.numParticles; i++) {
       const pi = this.particles[i]
       // I think it's cool when they all change at once.
-      pi.update(rand);
+      pi.update(rand)
 
-      for (let j = this.numParticles - 1; j > i; j--) {
+      let closest = this.opts.range
+      for (let j = 0; j < this.numParticles; j++) {
+        if (i == j) continue
         const pj = this.particles[j]
 
         const distanceIsh = Math.abs(pi.x - pj.x) + Math.abs(pi.y - pj.y)
-        if (distanceIsh > this.opts.range) continue
-
-        const sqrtAlpha = (this.opts.range - distanceIsh) / this.opts.range
-        const as = sqrtAlpha * sqrtAlpha
-
-        pi.draw(as)
-        pj.draw(as)
+        if (distanceIsh < closest)
+          closest = distanceIsh
       }
+
+      const sqrtAlpha = (this.opts.range - closest) / this.opts.range
+      pi.a = sqrtAlpha * sqrtAlpha
+      pi.draw()
     }
   }
 
   onFrame() {
-    // Skip
     if(this.frameCounter > 0) {
+      // Skip
       this.frameCounter--
     } else {
       this.updateAndDraw()
