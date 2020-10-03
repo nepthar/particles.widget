@@ -29,6 +29,14 @@ opts =
   # run at around 60 fps.
   frameSkip: 5
 
+  # Only spawn particles at the edge of the screen.
+  # Particles will only move along the edges.
+  edgeOnly: false
+
+  # Only useful if edgeOnly is true. When spawning particles, also spawn particles
+  # at screen_width / 2 or screen_height / 2. 
+  edgeAndCentre: false
+
 
 command: "pmset -g batt | egrep '([0-9]+\%).*' -o --colour=auto | cut -f1 -d';'"
 

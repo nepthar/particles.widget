@@ -74,8 +74,64 @@ class TVar {
 class Particle {
   constructor (net) {
     this.net = net
-    this.x = Math.random() * net.limx
-    this.y = Math.random() * net.limy
+    this.rand = Math.random()
+
+    if (net.opts.edgeOnly)
+    {
+      this.threshold1 = 0.5
+      this.threshold2 = 1.0 
+
+      if (net.opts.edgeAndCentre)
+      {
+        this.threshold1 = 0.3
+        this.threshold2 = 0.6 
+      }
+
+      if (Math.random() <= 0.5)
+      { 
+        this.x_move = false
+        this.y_move = true 
+        if (this.rand <= this.threshold1) // Spawn at the left Side
+        {
+          this.x = net.opts.sizeMax
+        } 
+        else if (this.rand <= this.threshold2) // Spawn at the right side
+        {
+          this.x = net.limx - net.opts.sizeMax
+        }
+        else
+        {
+          this.x = (net.limx / 2) // Spawn at the horizontal middle
+        }
+
+        this.y = Math.random() * net.limy // Y can be any value
+      }
+      else
+      {
+        this.x_move = true
+        this.y_move = false 
+        if (this.rand <= this.threshold1) // Spawn at Top
+        {
+          this.y = net.opts.sizeMax
+        }
+        else if (this.rand <= this.threshold2) // Spawn at Bottom
+        {
+          this.y = net.limy - net.opts.sizeMax
+        }
+        else
+        {
+          this.y = (net.limy / 2) // Spawn in the veritcal middle
+        }
+        this.x = Math.random() * net.limx // X can be any value
+      }
+    }
+    else
+    {
+        this.x_move = true
+        this.y_move = true 
+        this.x = Math.random() * net.limx
+        this.y = Math.random() * net.limy 
+    }
 
     this.s = new TVar(net.opts.sizeFlicker, net.newParticleSize, net.newSizeChangeTime)
     this.color = Random.select(net.opts.colors)
@@ -84,11 +140,19 @@ class Particle {
 
     this.vx = new TVar(net.opts.wander, net.newVelocity, net.newVelChangeTime)
     this.vy = new TVar(net.opts.wander, net.newVelocity, net.newVelChangeTime)
+
   }
 
   update(rand) {
-    this.x = (this.x + this.vx.update(rand)) % this.net.limx
-    this.y = (this.y + this.vy.update(rand)) % this.net.limy
+    if (this.x_move)
+    {
+      this.x = (this.x + this.vx.update(rand)) % this.net.limx
+    }
+    if (this.y_move)
+    { 
+      this.y = (this.y + this.vy.update(rand)) % this.net.limy
+    }
+
     this.s.update(rand)
   }
 
