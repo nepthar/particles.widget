@@ -74,7 +74,7 @@ class TVar {
 class Particle {
   constructor (net) {
     this.net = net
-    this.val = Math.random()
+    this.rand = Math.random()
 
     if (net.opts.edgeOnly)
     {
@@ -91,38 +91,38 @@ class Particle {
       { 
         this.x_move = false
         this.y_move = true 
-        if (this.val <= this.threshold1)
+        if (this.rand <= this.threshold1) // Spawn at the left Side
         {
           this.x = net.opts.sizeMax
         } 
-        else if (this.val <= this.threshold2)
+        else if (this.rand <= this.threshold2) // Spawn at the right side
         {
           this.x = net.limx - net.opts.sizeMax
         }
         else
         {
-          this.x = (net.limx / 2)
+          this.x = (net.limx / 2) // Spawn at the horizontal middle
         }
 
-        this.y = Math.random() * net.limy
+        this.y = Math.random() * net.limy // Y can be any value
       }
       else
       {
         this.x_move = true
         this.y_move = false 
-        if (this.val <= this.threshold1)
+        if (this.rand <= this.threshold1) // Spawn at Top
         {
           this.y = net.opts.sizeMax
         }
-        else if (this.val <= this.threshold2)
+        else if (this.rand <= this.threshold2) // Spawn at Bottom
         {
           this.y = net.limy - net.opts.sizeMax
         }
         else
         {
-          this.y = (net.limy / 2)
+          this.y = (net.limy / 2) // Spawn in the veritcal middle
         }
-        this.x = Math.random() * net.limx
+        this.x = Math.random() * net.limx // X can be any value
       }
     }
     else
