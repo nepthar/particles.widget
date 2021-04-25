@@ -44,19 +44,16 @@ class TVar {
     this.newVal = getNewValue
     this.newTime = getTime
     this.steps = 0
+    this.entangled = []
   }
 
   update(rand) {
     if (this.steps == 0) {
       // Constant
+
       if (this.chance > rand) {
         // Start Transition
-        this.steps = Math.floor(this.newTime())
-        if (this.steps == 0) {
-          this.value = this.newVal()
-        } else {
-          this.velocity = (this.newVal() - this.value) / this.steps
-        }
+        this.beginNewTransition()
       }
     } else {
       // Transitioning
@@ -64,6 +61,21 @@ class TVar {
       this.steps -= 1
     }
     return this.value
+  }
+
+  beginNewTransition() {
+    this.steps = Math.max(Math.floor(this.newTime()), 1)
+    this.velocity = (this.newVal() - this.value) / this.steps
+
+    for (let ent of this.entangled) {
+      ent.beginNewTransition()
+    }
+  }
+
+  // Make other entangled to this - it will only change when this changes
+  entangle(other) {
+    other.chance = -1
+    this.entangled.push(other)
   }
 
   static const(value) {
@@ -79,22 +91,22 @@ class Particle {
     if (net.opts.edgeOnly)
     {
       this.threshold1 = 0.5
-      this.threshold2 = 1.0 
+      this.threshold2 = 1.0
 
       if (net.opts.edgeAndCentre)
       {
         this.threshold1 = 0.3
-        this.threshold2 = 0.6 
+        this.threshold2 = 0.6
       }
 
       if (Math.random() <= 0.5)
-      { 
+      {
         this.x_move = false
-        this.y_move = true 
+        this.y_move = true
         if (this.rand <= this.threshold1) // Spawn at the left Side
         {
           this.x = net.opts.sizeMax
-        } 
+        }
         else if (this.rand <= this.threshold2) // Spawn at the right side
         {
           this.x = net.limx - net.opts.sizeMax
@@ -109,7 +121,7 @@ class Particle {
       else
       {
         this.x_move = true
-        this.y_move = false 
+        this.y_move = false
         if (this.rand <= this.threshold1) // Spawn at Top
         {
           this.y = net.opts.sizeMax
@@ -128,9 +140,9 @@ class Particle {
     else
     {
         this.x_move = true
-        this.y_move = true 
+        this.y_move = true
         this.x = Math.random() * net.limx
-        this.y = Math.random() * net.limy 
+        this.y = Math.random() * net.limy
     }
 
     this.s = new TVar(net.opts.sizeFlicker, net.newParticleSize, net.newSizeChangeTime)
@@ -146,13 +158,12 @@ class Particle {
   update(rand) {
     if (this.x_move)
     {
-      this.x = (this.x + this.vx.update(rand)) % this.net.limx
+      this.x = ((this.x + this.vx.update(rand) + this.net.wind[0]) + this.net.limx) % this.net.limx
     }
     if (this.y_move)
-    { 
-      this.y = (this.y + this.vy.update(rand)) % this.net.limy
+    {
+      this.y = ((this.y + this.vy.update(rand) + this.net.wind[1]) + this.net.limy) % this.net.limy
     }
-
     this.s.update(rand)
   }
 
@@ -167,7 +178,25 @@ class Particle {
     ctx.arc(this.x, this.y, this.s.value, 0, TPI)
     ctx.fill()
   }
+}
 
+class Wind {
+  constructor(minSpeed, maxSpeed, changness) {
+    this.velocity = new TVar(
+      changness, Random.range(minSpeed, maxSpeed), Random.range(20, 40))
+    this.direction = new TVar(0.0, Random.range(0,360), Random.range(20,40))
+    this.velocity.entangle(this.direction)
+  }
+
+  update(rand) {
+    return [this.velocity.update(rand), this.direction.update(rand)]
+  }
+
+  cartValue() {
+    const r = this.velocity.value
+    const th = this.direction.value * (Math.PI / 180.0)
+    return [r * Math.cos(th), r * Math.sin(th)]
+  }
 }
 
 class ParticleNetwork {
@@ -190,7 +219,7 @@ class ParticleNetwork {
     this.setStyles(this.canvasDiv, { 'position': 'relative' })
     this.setStyles(this.canvas, {
       'z-index': '-1',
-      'position': 'relative'
+//       'position': 'relative'
     })
 
     this.limx = this.canvas.width
@@ -201,12 +230,17 @@ class ParticleNetwork {
     this.vv = (this.opts.speed * fpsCorrect) / 1000.0
     this.vflicker = this.opts.wander / fpsCorrect
     this.sflicker = 0.001 / fpsCorrect
+    this.windFlicker = this.opts.windFlicker / fpsCorrect
 
     // Functions to generate new properties
     this.newParticleSize = Random.range(this.opts.sizeMin, this.opts.sizeMax)
     this.newSizeChangeTime = Random.range(60, 300)
     this.newVelChangeTime = Random.range(15, 60)
     this.newVelocity = Random.normal(0, this.vv)
+
+    this.windBase = new Wind(
+      this.opts.windSpeed[0], this.opts.windSpeed[1], this.windFlicker)
+    this.wind = this.windBase.cartValue()
 
     // Initialize particles
     this.particles = []
@@ -218,20 +252,21 @@ class ParticleNetwork {
 
     this.boundOnFrame = this.onFrame.bind(this)
     this.frameCounter = 0
-
     console.log("Created particle network with N=" + this.numParticles)
   }
 
   updateAndDraw() {
     let ctx = this.ctx
-    const rand = Math.random()
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    this.windBase.update(Math.random())
+    this.wind = this.windBase.cartValue()
 
     for (let i = 0; i < this.numParticles; i++) {
       const pi = this.particles[i]
       // I think it's cool when they all change at once.
-      pi.update(rand)
+
+      pi.update(Math.random())
 
       let closest = this.opts.range
       for (let j = 0; j < this.numParticles; j++) {
@@ -247,6 +282,12 @@ class ParticleNetwork {
       pi.a = sqrtAlpha * sqrtAlpha
       pi.draw()
     }
+  }
+
+  debug() {
+    console.log(`Wind base: ${this.wind}`)
+    console.log(`Canvas: ${this.canvas.width}x${this.canvas.height}`)
+    console.log(`Limits: ${this.limx}x${this.limy}`)
   }
 
   onFrame() {

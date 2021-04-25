@@ -1,24 +1,22 @@
 # particles shell workspace file
 
-# Environment
-export ws_name="particles" # Required
-export ws_home="/Users/nepthar/Code/particles.widget" # Required
+export workspace="particles"
 
-zip_contents=(
-  ./src
-  widget.json
-  particles.coffee
-  LICENSE
-  README.md
-)
-
-cmd.zip() {
+## Generate the zip file
+particles.zip() {
   if [[ ! -z "$(git status -z)" ]]; then
     echo "Uncommitted changes. Don't zip like this"
     return 1
   fi
 
-  tmp="./particles.widget"
+  local tmp="./particles.widget"
+  local zip_contents=(
+    ./src
+    widget.json
+    particles.coffee
+    LICENSE
+    README.md
+  )
 
   rm particles.widget.zip
   mkdir "$tmp"

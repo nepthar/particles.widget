@@ -3,50 +3,79 @@
 <head>
   <meta charset="ascii">
     <style type="text/css">
-      html {
-        height: 100%;
-      }
-      body {
+      html, body {
+        overflow: hidden;
         margin:0;
         padding:0;
         height: 100%;
         width: 100%;
+        background-color: black;
+      }
+
+      #container {
+        position: relative;
+        border: 1px solid;
+        height: 100%;
+        width: 100%;
+      }
+
+      #debug-info {
+        position: absolute;
+        color: white;
+        margin-top: 10px;
+        left: 0;
+        right: 0;
+        z-index: 10;
+      }
+
+      #particle-canvas {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        padding: 0;
       }
 
     </style>
     <title>test</title>
 </head>
-<body style="background-color:black;">
+<body>
+<div id="container">
+  <div id="debug-info">
 
-<div id="particle-canvas" style="width:100%; height:100%; padding:0;" onmouseup="OnClick(event)"></div>
+  </div>
+  <div id="particle-canvas" onmouseup="OnClick(event)"></div>
+</div>
 <script src="src/particles.js"></script>
 <script>
   const opts = {
     // Particle colors
     colors:  ["#fffb96", "#f47cd4", "#01cdfe"], // a e s t h e t i c
 
-    speed: 400,
+    speed: 300,
+
+    windSpeed: [3,4],
+    windFlicker: 0,
 
     // How often the particles change direction. (0.0 - 1.0)
-    wander: 0.0,
+    wander: 0.8, //0.005,
 
     // How flickery the particles appear. (0.0 -> anything really)
     flicker: 0.0,
 
     // Number of particles
-    number: 10,
+    number: 100,
 
     // Distance at which particles are close enough to glow
-    range: 200,
+    range: 2000,
 
     // Minimum particle size
-    sizeMin: 15,
+    sizeMin: 2,
 
     // Max particle size
-    sizeMax: 30,
+    sizeMax: 3,
 
     // Skip frames to save CPU cycles. If this number is zero, the animation will
-    // run at around 6
+    // run at around 60 FPS
     frameSkip: 0,
   };
 
