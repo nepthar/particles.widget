@@ -8,10 +8,20 @@ opts =
   speed: 100
 
   # The min and max wind speed
-  windSpeed: [0.2, 1.0]
+  windSpeed: [0.3, 1.0]
 
   # How often the wind changes
-  windFlicker: 0.1
+  windFlicker: 0.01
+
+  # The range of wind directions, in degrees, that the wind can blow.
+  # If both numbers are the same, the wind will never change direction.
+  # Guide:
+  # 0: Right, 90: Down, 180: Left, 270: Right
+  # So, for example, if you want the wind to always blow mostly upwards,
+  # use [250, 290]. For any direction, use [0, 359].
+  # The first number must always be less than the second, but you can
+  # pick negative numbers like [-10, 10]
+  windDirection: [0, 359]
 
   # How often the particles change direction. (0.0 - 1.0)
   wander: 0.8
@@ -19,8 +29,8 @@ opts =
   # How flickery the particles appear. (0.0+)
   flicker: 0.5
 
-  # Number of particles
-  number: 50
+  # Particles per 500x500 block of pixels
+  density: 7.2
 
   # Distance at which particles are close enough to glow
   range: 200
@@ -42,6 +52,9 @@ opts =
   # Only useful if edgeOnly is true. When spawning particles, also spawn particles
   # at screen_width / 2 or screen_height / 2.
   edgeAndCentre: false
+
+  # Show debugging info
+  debug: false
 
 
 command: "pmset -g batt | egrep '([0-9]+\%).*' -o --colour=auto | cut -f1 -d';'"

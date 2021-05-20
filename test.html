@@ -53,8 +53,9 @@
 
     speed: 300,
 
-    windSpeed: [3,4],
-    windFlicker: 0,
+    windSpeed: [0.2,3.0],
+    windFlicker: 0.05,
+    windDirection: [260, 280],
 
     // How often the particles change direction. (0.0 - 1.0)
     wander: 0.8, //0.005,
@@ -62,8 +63,8 @@
     // How flickery the particles appear. (0.0 -> anything really)
     flicker: 0.0,
 
-    // Number of particles
-    number: 100,
+    // Number of particles per each block of 500x500 pixels
+    density: 25,
 
     // Distance at which particles are close enough to glow
     range: 2000,
@@ -77,6 +78,8 @@
     // Skip frames to save CPU cycles. If this number is zero, the animation will
     // run at around 60 FPS
     frameSkip: 0,
+
+    debug: true
   };
 
   var pn = new ParticleNetwork("particle-canvas", opts);

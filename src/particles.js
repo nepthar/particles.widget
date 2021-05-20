@@ -32,6 +32,11 @@ class Random {
       return (rand - 6) * sigma + mu
     }
   }
+
+  // Returns true `probability` percent of the time
+  static chance(probability) {
+    return () => { return Math.random() < probability }
+  }
 }
 
 // Numerical variable with two states: constant, changing. When constant, it has
@@ -44,7 +49,7 @@ class TVar {
     this.newVal = getNewValue
     this.newTime = getTime
     this.steps = 0
-    this.entangled = []
+    this.watchers = []
   }
 
   update(rand) {
@@ -53,7 +58,7 @@ class TVar {
 
       if (this.chance > rand) {
         // Start Transition
-        this.beginNewTransition()
+        this.beginTransition()
       }
     } else {
       // Transitioning
@@ -63,19 +68,23 @@ class TVar {
     return this.value
   }
 
-  beginNewTransition() {
+  beginTransition() {
     this.steps = Math.max(Math.floor(this.newTime()), 1)
     this.velocity = (this.newVal() - this.value) / this.steps
 
-    for (let ent of this.entangled) {
-      ent.beginNewTransition()
-    }
+    for (let func of this.watchers) func()
+  }
+
+  watch(func) {
+    this.watchers.push(func)
   }
 
   // Make other entangled to this - it will only change when this changes
   entangle(other) {
     other.chance = -1
-    this.entangled.push(other)
+    this.watch(() => {
+      other.beginTransition()
+    })
   }
 
   static const(value) {
@@ -84,7 +93,7 @@ class TVar {
 }
 
 class Particle {
-  constructor (net) {
+  constructor(net) {
     this.net = net
     this.rand = Math.random()
 
@@ -181,15 +190,23 @@ class Particle {
 }
 
 class Wind {
-  constructor(minSpeed, maxSpeed, changness) {
+  constructor(minSpeed, maxSpeed, minDir, maxDir, changness) {
     this.velocity = new TVar(
       changness, Random.range(minSpeed, maxSpeed), Random.range(20, 40))
-    this.direction = new TVar(0.0, Random.range(0,360), Random.range(20,40))
+    this.direction = new TVar(0.0, Random.range(minDir, maxDir), Random.range(20,40))
     this.velocity.entangle(this.direction)
   }
 
   update(rand) {
     return [this.velocity.update(rand), this.direction.update(rand)]
+  }
+
+  watch(func) {
+    this.velocity.watch(func)
+  }
+
+  value() {
+    return [this.velocity.value, this.direction.value]
   }
 
   cartValue() {
@@ -239,12 +256,25 @@ class ParticleNetwork {
     this.newVelocity = Random.normal(0, this.vv)
 
     this.windBase = new Wind(
-      this.opts.windSpeed[0], this.opts.windSpeed[1], this.windFlicker)
+      this.opts.windSpeed[0],
+      this.opts.windSpeed[1],
+      this.opts.windDirection[0],
+      this.opts.windDirection[1],
+      this.windFlicker)
+
     this.wind = this.windBase.cartValue()
+
+    if (this.opts.debug) {
+      this.windBase.watch(() => {
+        let el = document.getElementById('debug-info')
+        const [dir, vel] = this.windBase.value()
+        el.textContent = `Wind: ${dir.toFixed(0)} @ ${vel.toFixed(2)}`
+      })
+    }
 
     // Initialize particles
     this.particles = []
-    this.numParticles = this.opts.number
+    this.numParticles = this.opts.density * (this.limx * this.limy) / (500.0 * 500.0)
     this.run = false
 
     for (let i = 0; i < this.numParticles; i++)
@@ -261,6 +291,17 @@ class ParticleNetwork {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.windBase.update(Math.random())
     this.wind = this.windBase.cartValue()
+
+    if (this.opts.debug) {
+
+      this.drawLineWithArrows(
+        ctx,
+        50, 50,
+        50 + this.wind[0] * 10, 50 + this.wind[1] * 10,
+        3, 5,
+        false, true
+      )
+    }
 
     for (let i = 0; i < this.numParticles; i++) {
       const pi = this.particles[i]
@@ -288,6 +329,43 @@ class ParticleNetwork {
     console.log(`Wind base: ${this.wind}`)
     console.log(`Canvas: ${this.canvas.width}x${this.canvas.height}`)
     console.log(`Limits: ${this.limx}x${this.limy}`)
+  }
+
+  // From stack overflow somewhere
+  // x0,y0: the line's starting point
+  // x1,y1: the line's ending point
+  // width: the distance the arrowhead perpendicularly extends away from the line
+  // height: the distance the arrowhead extends backward from the endpoint
+  // arrowStart: true/false directing to draw arrowhead at the line's starting point
+  // arrowEnd: true/false directing to draw arrowhead at the line's ending point
+  drawLineWithArrows(ctx, x0,y0,x1,y1,aWidth,aLength,arrowStart,arrowEnd){
+      const dx = x1-x0
+      const dy = y1-y0
+      const angle = Math.atan2(dy,dx)
+      const length = Math.sqrt(dx*dx+dy*dy)
+
+      ctx.fillStyle = 'white'
+      ctx.globalAlpha = 1.0
+      ctx.strokeStyle = 'white'
+
+      ctx.translate(x0,y0)
+      ctx.rotate(angle)
+      ctx.beginPath()
+      ctx.moveTo(0,0)
+      ctx.lineTo(length,0)
+      if(arrowStart){
+          ctx.moveTo(aLength,-aWidth)
+          ctx.lineTo(0,0)
+          ctx.lineTo(aLength,aWidth)
+      }
+      if(arrowEnd){
+          ctx.moveTo(length-aLength,-aWidth)
+          ctx.lineTo(length,0)
+          ctx.lineTo(length-aLength,aWidth)
+      }
+      //
+      ctx.stroke()
+      ctx.setTransform(1,0,0,1,0,0)
   }
 
   onFrame() {
