@@ -62,7 +62,7 @@ command: "pmset -g batt | egrep '([0-9]+\%).*' -o --colour=auto | cut -f1 -d';'"
 
 render: (_) ->
   """
-  <div id="particle-canvas" style="width:100%; height:100%; padding:0;border: 2px solid;position:absolute"></div>
+  <div id="particle-canvas" style="width:100%; height:100%; padding:0;border: 0px solid;position:absolute"></div>
   <div id="debug-info" style="position: absolute;left:10px;right:0;bottom:10px;color:white"></div>
   <script src="particles.widget/src/particles.js"></script>
   """
