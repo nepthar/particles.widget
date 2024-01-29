@@ -164,14 +164,14 @@ class Particle {
 
   }
 
-  update(rand) {
+  update(rand, wind) {
     if (this.x_move)
     {
-      this.x = ((this.x + this.vx.update(rand) + this.net.wind[0]) + this.net.limx) % this.net.limx
+      this.x = ((this.x + this.vx.update(rand) + wind[0]) + this.net.limx) % this.net.limx
     }
     if (this.y_move)
     {
-      this.y = ((this.y + this.vy.update(rand) + this.net.wind[1]) + this.net.limy) % this.net.limy
+      this.y = ((this.y + this.vy.update(rand) + wind[1]) + this.net.limy) % this.net.limy
     }
     this.s.update(rand)
   }
@@ -262,13 +262,11 @@ class ParticleNetwork {
       this.opts.windDirection[1],
       this.windFlicker)
 
-    this.wind = this.windBase.cartValue()
-
     if (this.opts.debug) {
       this.windBase.watch(() => {
         let el = document.getElementById('debug-info')
         const [dir, vel] = this.windBase.value()
-        el.textContent = `Wind: ${dir.toFixed(0)} @ ${vel.toFixed(2)}`
+        el.textContent = `Wind: ${dir.toFixed(2)} @ ${vel.toFixed(2)}`
       })
     }
 
@@ -290,15 +288,14 @@ class ParticleNetwork {
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.windBase.update(Math.random())
-    this.wind = this.windBase.cartValue()
+    let wind = this.windBase.cartValue()
 
     if (this.opts.debug) {
-
       this.drawLineWithArrows(
         ctx,
-        50, 50,
-        50 + this.wind[0] * 10, 50 + this.wind[1] * 10,
-        3, 5,
+        100, 100,
+        100 + wind[0] * 100, 100 + wind[1] * 100,
+        3, 3,
         false, true
       )
     }
@@ -307,7 +304,7 @@ class ParticleNetwork {
       const pi = this.particles[i]
       // I think it's cool when they all change at once.
 
-      pi.update(Math.random())
+      pi.update(Math.random(), wind)
 
       let closest = this.opts.range
       for (let j = 0; j < this.numParticles; j++) {
@@ -326,7 +323,7 @@ class ParticleNetwork {
   }
 
   debug() {
-    console.log(`Wind base: ${this.wind}`)
+    console.log(`Wind base: ${this.windBse.cartValue()}`)
     console.log(`Canvas: ${this.canvas.width}x${this.canvas.height}`)
     console.log(`Limits: ${this.limx}x${this.limy}`)
   }

@@ -29,3 +29,15 @@ particles.zip() {
   zip -r particles.widget.zip ./particles.widget
   rm -rf "$tmp"
 }
+
+particles.link() {
+  local widgets="${HOME}/Library/Application Support/Übersicht/widgets"
+
+  if [[ ! -f './particles.coffee' ]]; then
+    echo "Run this from the project root folder"
+    return 1
+  fi
+
+  echo "./ -> $widgets"
+  ln -s "$PWD" "$widgets"
+}
