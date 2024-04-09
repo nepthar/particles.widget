@@ -50,12 +50,13 @@
   const opts = {
     // Particle colors
     colors:  ["#fffb96", "#f47cd4", "#01cdfe"], // a e s t h e t i c
+    //colors: ['']
 
-    speed: 500,
+    speed: 200,
 
-    windSpeed: [3,6],
+    windSpeed: [0,0],
     windFlicker: 0.1,
-    windDirection: [250, 290],
+    windDirection: [0, 260],
 
     // How often the particles change direction. (0.0 - 1.0)
     wander: 0.4, //0.005,
@@ -77,9 +78,9 @@
 
     // Skip frames to save CPU cycles. If this number is zero, the animation will
     // run at around 60 FPS
-    frameSkip: 0,
+    frameSkip: 4,
 
-    debug: true
+    debug: false
   };
 
   var pn = new ParticleNetwork("particle-canvas", opts);

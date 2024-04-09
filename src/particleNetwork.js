@@ -3,6 +3,7 @@
 
 "use strict" // Does this do anything?
 const TPI = 2.0 * Math.PI
+const CLOSE_ENOUGH = 0.0001
 
 class Random {
   static select(list) {
@@ -52,7 +53,7 @@ class TVar {
     this.watchers = []
   }
 
-  update(rand) {
+  update(rand=0) {
     if (this.steps == 0) {
       // Constant
 
@@ -69,8 +70,22 @@ class TVar {
   }
 
   beginTransition() {
-    this.steps = Math.max(Math.floor(this.newTime()), 1)
-    this.velocity = (this.newVal() - this.value) / this.steps
+    this.change(
+      this.newVal(),
+      Math.max(Math.floor(this.newTime()), 1)
+    )
+  }
+
+  change(newValue, numSteps) {
+    let vdiff = newValue - this.value
+
+    if (Math.abs(vdiff) <= CLOSE_ENOUGH) {
+      this.value = newValue
+      return
+    }
+
+    this.velocity = vdiff / numSteps
+    this.steps = numSteps
 
     for (let func of this.watchers) func()
   }
@@ -164,20 +179,21 @@ class Particle {
 
   }
 
-  update(rand, wind) {
+  update(rand, wind, scale) {
     if (this.x_move)
     {
-      this.x = ((this.x + this.vx.update(rand) + wind[0]) + this.net.limx) % this.net.limx
+      const dx = (this.vx.update(rand) + wind[0]) * scale
+      this.x = (this.x + dx + this.net.limx) % this.net.limx
     }
     if (this.y_move)
     {
-      this.y = ((this.y + this.vy.update(rand) + wind[1]) + this.net.limy) % this.net.limy
+      const dy = (this.vy.update(rand) + wind[1]) * scale
+      this.y = (this.y + dy + this.net.limy) % this.net.limy
     }
     this.s.update(rand)
   }
 
-  draw() {
-    const ctx = this.net.ctx
+  draw(ctx) {
     ctx.globalAlpha = this.a * this.flicker()
     ctx.fillStyle = this.color
     // Believe it or not, this uses 4x CPU. Wooo boy.
@@ -194,6 +210,7 @@ class Wind {
     this.velocity = new TVar(
       changness, Random.range(minSpeed, maxSpeed), Random.range(20, 40))
     this.direction = new TVar(0.0, Random.range(minDir, maxDir), Random.range(20,40))
+    // Ensure that velocity and direction change at the same time.
     this.velocity.entangle(this.direction)
   }
 
@@ -248,6 +265,7 @@ class ParticleNetwork {
     this.vflicker = this.opts.wander / fpsCorrect
     this.sflicker = 0.001 / fpsCorrect
     this.windFlicker = this.opts.windFlicker / fpsCorrect
+    this.speedScale = TVar.const(1.0)
 
     // Functions to generate new properties
     this.newParticleSize = Random.range(this.opts.sizeMin, this.opts.sizeMax)
@@ -289,6 +307,7 @@ class ParticleNetwork {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.windBase.update(Math.random())
     let wind = this.windBase.cartValue()
+    let scale = this.speedScale.update()
 
     if (this.opts.debug) {
       this.drawLineWithArrows(
@@ -304,7 +323,7 @@ class ParticleNetwork {
       const pi = this.particles[i]
       // I think it's cool when they all change at once.
 
-      pi.update(Math.random(), wind)
+      pi.update(Math.random(), wind, scale)
 
       let closest = this.opts.range
       for (let j = 0; j < this.numParticles; j++) {
@@ -318,7 +337,7 @@ class ParticleNetwork {
 
       const sqrtAlpha = (this.opts.range - closest) / this.opts.range
       pi.a = sqrtAlpha * sqrtAlpha
-      pi.draw()
+      pi.draw(ctx)
     }
   }
 
@@ -379,7 +398,8 @@ class ParticleNetwork {
     }
   }
 
-  start() {
+  start(scale=1.0) {
+    this.speedScale.change(scale, 15)
     if (!this.run) {
       this.run = true
       this.onFrame()
@@ -404,3 +424,5 @@ class ParticleNetwork {
     }
   }
 }
+
+export { ParticleNetwork };
