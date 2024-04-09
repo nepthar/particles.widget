@@ -1,6 +1,11 @@
 import { css } from "uebersicht"
 import { ParticleNetwork } from "./src/particleNetwork"
 
+export const refreshFrequency = 60000;
+
+// The percent battery where we shut this down to save power
+const batteryCutoff = 75;
+
 export const opts = {
     // Particle colors
     colors:  ["#fffb96", "#f47cd4", "#01cdfe"], // a e s t h e t i c
@@ -66,9 +71,6 @@ export const className = `
   whatever: 3333;
 `
 
-export let refreshFrequency = 10000;
-
-const normalRefreshFrequency = refreshFrequency;
 let particleNetwork = null;
 
 export const command = "pmset -g batt | egrep '([0-9]+\%).*' -o --colour=auto | cut -f1 -d';'";
@@ -111,17 +113,14 @@ export const updateState = (event, previousState) => {
     particleNetwork.start();
   }
 
-  console.log(event);
-
-  // Don't waste precious power
+  // Don't waste power
   const batt = parseInt(event.output.split("%")[0]);
-  if (batt > 90) {
-    console.log("PN Refresh as normal");
-    const scale = (batt - 90) / 10.0;
-    console.log(`Scale: ${scale}`)
+  if (batt > batteryCutoff) {
+    const scale = (batt - batteryCutoff) / (100.0 - batteryCutoff);
+    console.log(`Particles: Scale is now ${scale}`);
     particleNetwork.start(scale);
   } else {
-    console.log("Particle network in power saving mode");
+    console.log(`Particles: Network in power save mode`);
     particleNetwork.stop();
   }
 
