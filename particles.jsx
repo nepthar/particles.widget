@@ -80,7 +80,7 @@ export const getInitialState = () => {
     width: '100%',
     height: '100%',
     padding: 0,
-    border: '2px solid',
+    border: 0,
     position: 'absolute'
   };
 
