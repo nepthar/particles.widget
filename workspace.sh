@@ -4,10 +4,10 @@ export workspace="particles"
 
 ## Generate the zip file
 particles.zip() {
-  # if [[ ! -z "$(git status -z)" ]]; then
-  #   echo "Uncommitted changes. Don't zip like this"
-  #   return 1
-  # fi
+  if [[ ! -z "$(git status -z)" ]]; then
+    echo "Uncommitted changes. Don't zip like this"
+    return 1
+  fi
 
   local tmp="./particles.widget"
   local zip_contents=(
