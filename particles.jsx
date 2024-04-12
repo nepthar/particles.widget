@@ -1,7 +1,7 @@
 import { css } from "uebersicht"
 import { ParticleNetwork } from "./src/particleNetwork"
 
-export const refreshFrequency = 60000;
+export const refreshFrequency = 1000;
 
 // The percent battery where we shut this down to save power
 const batteryCutoff = 75;
@@ -103,13 +103,19 @@ export const getInitialState = () => {
   );
 };
 
-export const initialState = {
-  output: getInitialState(),
-};
+export const initialState = { output: getInitialState() };
 
 export const updateState = (event, previousState) => {
   if (!particleNetwork) {
-    particleNetwork = new ParticleNetwork("particle-canvas", opts);
+    let canvasDiv = document.getElementById('particle-canvas');
+
+    // Ensure the canvas div has been set up. I think there is a weird
+    // race condition somewhere between initialState and updateState
+    if(canvasDiv == null) {
+      return previousState;
+    }
+
+    particleNetwork = new ParticleNetwork(canvasDiv, opts);
     particleNetwork.start();
   }
 

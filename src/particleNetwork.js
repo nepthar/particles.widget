@@ -160,13 +160,11 @@ class Particle {
         }
         this.x = Math.random() * net.limx // X can be any value
       }
-    }
-    else
-    {
-        this.x_move = true
-        this.y_move = true
-        this.x = Math.random() * net.limx
-        this.y = Math.random() * net.limy
+    } else {
+      this.x_move = true
+      this.y_move = true
+      this.x = Math.random() * net.limx
+      this.y = Math.random() * net.limy
     }
 
     this.s = new TVar(net.opts.sizeFlicker, net.newParticleSize, net.newSizeChangeTime)
@@ -234,10 +232,10 @@ class Wind {
 }
 
 class ParticleNetwork {
-  constructor (elementId, options) {
+  constructor (canvasDiv, options) {
     this.opts = options
 
-    this.canvasDiv = document.getElementById(elementId)
+    this.canvasDiv = canvasDiv
     this.canvasDiv.size = {
       'width': this.canvasDiv.offsetWidth,
       'height': this.canvasDiv.offsetHeight
